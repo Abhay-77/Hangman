@@ -4,10 +4,10 @@
   "description": "An online hangman game",
   "license": "ISC",
   "author": "Abhay",
-  "type": "commonjs",
+  "type": "module",
   "main": "index.ts",
   "scripts": {
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.ts"
   },
   "dependencies": {
     "accepts": "^2.0.0",

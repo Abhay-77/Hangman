@@ -1,5 +1,6 @@
-const express = require("express");
-const { nanoid } = require("nanoid");
+import express from "express";
+import type {Request,Response} from "express"
+import { nanoid } from "nanoid";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -7,17 +8,18 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 
 type GameStatus = "waiting" | "live";
-
-const rooms: {
-  roomId: number;
+export type RoomDetail = {
+  roomId: string;
   players: string[];
   word: string | null;
   status: GameStatus;
-}[] = [];
+};
 
-app.post("/api/createroom", (req, res) => {
+const rooms: RoomDetail[] = [];
+
+app.post("/api/createroom", async (req:Request, res:Response) => {
   try {
-    const body = req.body();
+    const body = req.body;
     const id = nanoid(6).toUpperCase();
     rooms.push({
       roomId: id,
@@ -29,6 +31,19 @@ app.post("/api/createroom", (req, res) => {
   } catch (error) {
     console.error(error);
     res.json({ message: "Error occured", success: 0 });
+  }
+});
+
+app.get("/api/getroom/:id", (req, res) => {
+  try {
+    const { id } = req.params;
+    const room = rooms.find((r) => r.roomId === id);
+    if (!room) {
+      res.json({success:0,message:"No such room exists"})
+    }
+    res.json({ success: 1, message: "Room found", room: room });
+  } catch (error) {
+    console.error(error);
   }
 });
 

@@ -28,9 +28,9 @@ function App() {
     }
     const data = await res.json();
     if (!data.success) {
-      setError(data.message);
-    }
-    navigate(`/game/${data.gameId}?username=${username}`);
+        setError(data.message);
+      }
+      navigate(`/game/${data.roomId}?username=${encodeURIComponent(username)}`);
   }
 
   return (
@@ -45,7 +45,7 @@ function App() {
         value={username}
         onChange={(e) => setUsername(e.target.value)}
       />
-      <Input name="gameId" placeholder="Enter room code" className="w-1/3" />
+      <Input name="gameId" placeholder="Enter room code" className="w-1/3"/>
       <div className="flex justify-between w-1/3 py-2">
         <Button className="bg-blue-700" type="submit">
           Join Room
@@ -58,7 +58,7 @@ function App() {
           Create Room
         </Button>
       </div>
-      {error.length > 0 && <span className="text-red-600">{error}</span>}
+      {<span className="text-red-600">{error}</span>}
     </form>
   );
 }
