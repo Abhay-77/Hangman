@@ -4,7 +4,7 @@ import type { RoomDetail } from "../../../backend/index";
 import { Button } from "@/components/ui/button";
 import { io } from "socket.io-client";
 
-const Game = () => {
+const Room = () => {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
   const username = decodeURIComponent(searchParams.get("username")!);
@@ -12,7 +12,6 @@ const Game = () => {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  
   useEffect(() => {
     const socket = io();
     socket.emit("join-room", id);
@@ -22,7 +21,7 @@ const Game = () => {
     });
 
     return () => {
-      socket.disconnect()
+      socket.disconnect();
     };
   }, [id]);
 
@@ -47,10 +46,11 @@ const Game = () => {
     if (username && room && !room?.players.includes(username)) {
       navigate("/");
     }
-  }, [room,username,navigate]);
+  }, [room, username, navigate]);
 
   function handleStartGame(): void {
-    console.log("Game started");
+    console.log("Game started")
+    navigate(`/game/${id}?username=${encodeURIComponent(username)}`);
   }
 
   async function handleLeaveRoom() {
@@ -59,18 +59,18 @@ const Game = () => {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ username: username,id:id }),
+      body: JSON.stringify({ username: username, id: id }),
     });
     if (!res.ok) {
-      setError("Error!Try again")
-      return
+      setError("Error!Try again");
+      return;
     }
-    const data = await res.json()
+    const data = await res.json();
     if (!data.success) {
-      setError(data.message)
-      return
+      setError(data.message);
+      return;
     }
-    navigate("/")
+    navigate("/");
   }
 
   return (
@@ -85,12 +85,12 @@ const Game = () => {
           <h1 className="">Players</h1>
           <ol type="1" className="">
             {room?.players.map((player) => (
-                <li className="" key={player}>
-                  {player}
-                  {player === room.host && <>{" (host)"}</>}
-                  {player === username && <>{" (You)"}</>}
-                </li>
-              ))}
+              <li className="" key={player}>
+                {player}
+                {player === room.host && <>{" (host)"}</>}
+                {player === username && <>{" (You)"}</>}
+              </li>
+            ))}
           </ol>
           <Button disabled={username != room?.host} onClick={handleStartGame}>
             Start Game
@@ -105,4 +105,4 @@ const Game = () => {
   );
 };
 
-export default Game;
+export default Room;
