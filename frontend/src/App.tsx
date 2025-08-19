@@ -12,7 +12,22 @@ function App() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const gameId = formData.get("gameId");
-    navigate(`/game/${gameId}`);
+    const res = await fetch("/api/addplayer", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ username: username,gameId:gameId }),
+    });
+    if (!res.ok) {
+      setError("An error occured")
+    }
+    const data = await res.json()
+    if (!data.success) {
+      setError(data.message)
+      return
+    }
+    navigate(`/room/${gameId}?username=${encodeURIComponent(username)}`);
   }
 
   async function handleCreateRoom() {
@@ -28,9 +43,9 @@ function App() {
     }
     const data = await res.json();
     if (!data.success) {
-        setError(data.message);
-      }
-      navigate(`/game/${data.roomId}?username=${encodeURIComponent(username)}`);
+      setError(data.message);
+    }
+    navigate(`/room/${data.roomId}?username=${encodeURIComponent(username)}`);
   }
 
   return (
@@ -45,7 +60,7 @@ function App() {
         value={username}
         onChange={(e) => setUsername(e.target.value)}
       />
-      <Input name="gameId" placeholder="Enter room code" className="w-1/3"/>
+      <Input name="gameId" placeholder="Enter room code" className="w-1/3" />
       <div className="flex justify-between w-1/3 py-2">
         <Button className="bg-blue-700" type="submit">
           Join Room
