@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import type { RoomDetail } from "../../../backend/index";
 import { Button } from "@/components/ui/button";
-import { io } from "socket.io-client";
+// import { io } from "socket.io-client";
+import { socket } from "../lib/socket";
 
 const Room = () => {
   const { id } = useParams();
@@ -13,15 +14,27 @@ const Room = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const socket = io();
+    // const socket = io()
+    if (!socket.connected) {
+      socket.connect();
+    }
+
     socket.emit("join-room", id);
 
-    socket.on("room-change", (r) => {
-      setRoom(r);
-    });
+    const handleRoomChange = (r: RoomDetail) => setRoom(r);
+
+    socket.on("room-change", handleRoomChange);
+
+    const handleStartGameEmit = () => {
+      console.log("Game started");
+      navigate(`/game/${id}?username=${encodeURIComponent(username)}`);
+    };
+
+    socket.on("start-game", handleStartGameEmit);
 
     return () => {
-      socket.disconnect();
+      socket.off("start-game", handleStartGameEmit);
+      socket.off("room-change", handleRoomChange);
     };
   }, [id]);
 
@@ -49,8 +62,8 @@ const Room = () => {
   }, [room, username, navigate]);
 
   function handleStartGame(): void {
-    console.log("Game started")
-    navigate(`/game/${id}?username=${encodeURIComponent(username)}`);
+    console.log("Game started");
+    socket.emit("start-game", id);
   }
 
   async function handleLeaveRoom() {
@@ -98,7 +111,7 @@ const Room = () => {
           <Button disabled={username == room?.host} onClick={handleLeaveRoom}>
             Leave Room
           </Button>
-          <span className="">{error}</span>
+          <div className="text-red-600">{error}</div>
         </div>
       </section>
     </section>

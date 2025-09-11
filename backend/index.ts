@@ -9,6 +9,8 @@ const server = createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
 const PORT = process.env.PORT || 3000;
 
+const maxGuesses = 6
+
 app.use(express.json());
 
 type GameStatus = "waiting" | "live";
@@ -18,6 +20,16 @@ export type RoomDetail = {
   word: string | null;
   status: GameStatus;
   host: string;
+  guessedLetters: string[];
+  wrongGuesses: number;
+  gameOver: boolean;
+};
+export type GameState = {
+  guessedLetters: string[];
+  wrongGuesses: number;
+  wordLength: number;
+  gameOver: boolean;
+  maskedWord: string;
 };
 
 const rooms: RoomDetail[] = [];
@@ -29,9 +41,12 @@ app.post("/api/createroom", async (req: Request, res: Response) => {
     rooms.push({
       roomId: id,
       players: [body.username],
-      word: null,
+      word: "",
       status: "waiting",
       host: body.username,
+      gameOver: false,
+      guessedLetters: [],
+      wrongGuesses: 0
     });
     res.json({ roomId: id, message: "Room created successfully", success: 1 });
   } catch (error) {
@@ -85,7 +100,53 @@ io.on("connection", (socket) => {
     // socket.leave(roomId)
     console.log("Someone left the room");
   });
+  socket.on("start-game",(roomId)=>{
+    io.to(roomId).emit("start-game")
+  })
+  socket.on("letterpress-handle",(letter,roomId)=>{
+    const room = rooms.find(r=>r.roomId == roomId)
+    if(!room)return
+
+    if (!room.guessedLetters.includes(letter)) {
+      room.guessedLetters.push(letter)
+      if (!room.word.includes(letter)) {
+        room.wrongGuesses += 1
+      }
+    }
+
+    room.gameOver = room.wrongGuesses >= maxGuesses
+
+    const gameState: GameState = {
+      guessedLetters: room.guessedLetters,
+      wrongGuesses: room.wrongGuesses,
+      wordLength: room.word.length,
+      gameOver: room.gameOver,
+      maskedWord: masked(room.word, room.guessedLetters),
+    };
+
+    io.to(roomId).emit("gamestate-update",gameState)
+  });
 });
+
+app.get("/api/getgamestate/:id",(req,res)=>{
+  try {
+    const {id} = req.params
+    const room = rooms.find(r=>r.roomId == id)
+    if (!room) {
+      res.json({success:0,message:"Room not found"})
+    }
+    const gameState:GameState = {
+      guessedLetters: room.guessedLetters,
+      wrongGuesses: room.wrongGuesses,
+      wordLength: room.word.length,
+      gameOver: room.gameOver,
+      maskedWord: masked(room.word,room.guessedLetters)
+    }
+    res.json({success:1,message:"Gamestate found",gameState:gameState})
+  } catch (e) {
+    
+  }
+})
 
 app.post("/api/leaveroom", (req, res) => {
   try {
@@ -102,6 +163,14 @@ app.post("/api/leaveroom", (req, res) => {
   }
 });
 
+function masked(word: string, guessedLetters: string[]): string {
+  if (!word) {
+    return ""
+  }
+  return word.split("").map(ch=>guessedLetters.includes(ch)?ch:"_").join("")
+}
+
 server.listen(PORT, () => {
   console.log("Server started on port", PORT);
 });
+

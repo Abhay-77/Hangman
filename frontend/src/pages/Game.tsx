@@ -1,17 +1,18 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import type { RoomDetail } from "../../../backend/index";
+import type { RoomDetail, GameState } from "../../../backend/index";
 import { Button } from "@/components/ui/button";
+import { socket } from "../lib/socket";
 
 const Game = () => {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
   const username = decodeURIComponent(searchParams.get("username")!);
   const [room, setRoom] = useState<RoomDetail>();
+  const [gameState, setGameState] = useState<GameState>();
   const [error, setError] = useState("");
-  const [guess, setGuess] = useState<number>(0);
-  const [guessedLetters, setGuessedLetters] = useState<string[]>([]);
   const navigate = useNavigate();
+
   useEffect(() => {
     async function getRoom() {
       const res = await fetch(`/api/getroom/${id}`);
@@ -26,23 +27,56 @@ const Game = () => {
       }
       setRoom(data.room);
     }
+    async function getGameState() {
+      const res = await fetch(`/api/getgamestate/${id}`);
+      if (!res.ok) {
+        setError("An error occured.Refresh the page");
+        return;
+      }
+      const data = await res.json();
+      if (!data.success) {
+        setError(data.message);
+        navigate("/");
+      }
+      setGameState(data.gameState);
+    }
     getRoom();
+    getGameState();
+    const handleGameStateUpdate = (g: GameState) => setGameState(g);
+    socket.on("gamestate-update", handleGameStateUpdate);
+    return () => {
+      socket.off("gamestate-update", handleGameStateUpdate);
+    };
   }, [id]);
   useEffect(() => {
     if (username && room && !room?.players.includes(username)) {
       navigate("/");
     }
   }, [room, username, navigate]);
+
   function onLetterPress(letter: string): void {
-    console.log(letter);
-    setGuessedLetters((prev) => [...prev, letter]);
-    setGuess((prev) => prev + 1);
+    socket.emit("letterpress-handle", letter, id);
   }
   return (
     <section className="h-screen w-screen flex flex-col items-center">
-      <HangmanSVG wrongGuesses={guess} />
-      <div className="">Guessed letters: {guessedLetters.toString()}</div>
-      <Keyboard onLetterPress={onLetterPress} guessedLetters={guessedLetters} />
+      {gameState?.wordLength != 0 ? (
+        <>
+          {gameState?.gameOver && (
+            <div className="text-red-600 text-3xl font-semibold">Game Over</div>
+          )}
+          <HangmanSVG wrongGuesses={gameState?.wrongGuesses || 0} />
+          <div className="">
+            Guessed letters: {gameState?.guessedLetters.toString()}
+          </div>
+          <Keyboard
+            onLetterPress={onLetterPress}
+            gameOver={gameState?.gameOver || false}
+            guessedLetters={gameState?.guessedLetters || []}
+          />
+        </>
+      ) : (
+        <form className="bg-black">Enter word</form>
+      )}
     </section>
   );
 };
@@ -111,7 +145,8 @@ const HangmanSVG: React.FC<{ wrongGuesses: number }> = ({ wrongGuesses }) => (
 const Keyboard: React.FC<{
   onLetterPress: (letter: string) => void;
   guessedLetters: string[];
-}> = ({ onLetterPress, guessedLetters }) => {
+  gameOver: boolean;
+}> = ({ onLetterPress, guessedLetters, gameOver }) => {
   const lettersLines: string[] = ["QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"];
   return (
     <div className="w-[30rem] bg-gray-500">
@@ -121,7 +156,7 @@ const Keyboard: React.FC<{
             <Button
               key={letter}
               onClick={() => onLetterPress(letter)}
-              disabled={guessedLetters.includes(letter)}
+              disabled={guessedLetters.includes(letter) || gameOver}
               className="bg-gray-400 disabled:bg-gray-800 m-1 size-10 rounded items-center text-xl justify-center font-semibold flex "
             >
               {letter}
