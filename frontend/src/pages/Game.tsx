@@ -3,6 +3,7 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import type { RoomDetail, GameState } from "../../../backend/index";
 import { Button } from "@/components/ui/button";
 import { socket } from "../lib/socket";
+import { Input } from "@/components/ui/input";
 
 const Game = () => {
   const { id } = useParams();
@@ -11,6 +12,7 @@ const Game = () => {
   const [room, setRoom] = useState<RoomDetail>();
   const [gameState, setGameState] = useState<GameState>();
   const [error, setError] = useState("");
+  const [winStatus, setWinStatus] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -44,8 +46,31 @@ const Game = () => {
     getGameState();
     const handleGameStateUpdate = (g: GameState) => setGameState(g);
     socket.on("gamestate-update", handleGameStateUpdate);
+    socket.on("word-set", (updatedRoom: RoomDetail, gameState: GameState) => {
+      setRoom(updatedRoom);
+      setGameState(gameState);
+    });
+    socket.on("word-rejected", (message: string) => {
+      alert(message);
+    });
+    socket.on("win-status", () => setWinStatus("You Win!"));
+    socket.on("lose-status", () => setWinStatus("You Lose!"));
+    socket.on("new-game", (updatedRoom: RoomDetail) => {
+      setRoom(updatedRoom);
+      setGameState({
+        guessedLetters: [],
+        wrongGuesses: 0,
+        wordLength: updatedRoom.word?.length || 0,
+        gameOver: false,
+        maskedWord: ""
+      });
+    });
     return () => {
       socket.off("gamestate-update", handleGameStateUpdate);
+      socket.off("word-rejected");
+      socket.off("word-set");
+      socket.off("win-status");
+      socket.off("lose-status");
     };
   }, [id]);
   useEffect(() => {
@@ -57,14 +82,34 @@ const Game = () => {
   function onLetterPress(letter: string): void {
     socket.emit("letterpress-handle", letter, id);
   }
+  function handleWordSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const word = formData.get("word") as string;
+    socket.emit("wordsubmit-handle", word, id);
+    e.currentTarget.reset();
+  }
+
+  function handleNextGame(): void {
+    if (!room || !gameState?.gameOver) {
+      alert("Game is still in progress");
+      return;
+    }
+    socket.emit("nextgame-handle", id);
+  }
+
   return (
     <section className="h-screen w-screen flex flex-col items-center">
       {gameState?.wordLength != 0 ? (
         <>
           {gameState?.gameOver && (
-            <div className="text-red-600 text-3xl font-semibold">Game Over</div>
+            <div className="text-cyan-600 text-3xl font-semibold">
+              Game Over : {winStatus}
+            </div>
           )}
+          <Button onClick={handleNextGame}>Next Game</Button>
           <HangmanSVG wrongGuesses={gameState?.wrongGuesses || 0} />
+          <div className="">{gameState?.maskedWord.split("").join(" ")}</div>
           <div className="">
             Guessed letters: {gameState?.guessedLetters.toString()}
           </div>
@@ -72,10 +117,28 @@ const Game = () => {
             onLetterPress={onLetterPress}
             gameOver={gameState?.gameOver || false}
             guessedLetters={gameState?.guessedLetters || []}
+            disabled={room?.word_chooser === socket.id}
           />
         </>
       ) : (
-        <form className="bg-black">Enter word</form>
+        <form className="" onSubmit={handleWordSubmit}>
+          <Input
+            type="text"
+            className="text-black"
+            placeholder="Enter word"
+            name="word"
+          />
+        </form>
+      )}
+      {room && room.status === "live" && (
+        <>
+          <div className="text-2xl font-semibold">
+            Word Length: {room.word?.length}
+          </div>
+          <div className="text-2xl font-semibold">
+            Players: {room.players.toString()}
+          </div>
+        </>
       )}
     </section>
   );
@@ -146,7 +209,8 @@ const Keyboard: React.FC<{
   onLetterPress: (letter: string) => void;
   guessedLetters: string[];
   gameOver: boolean;
-}> = ({ onLetterPress, guessedLetters, gameOver }) => {
+  disabled: boolean;
+}> = ({ onLetterPress, guessedLetters, gameOver, disabled }) => {
   const lettersLines: string[] = ["QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"];
   return (
     <div className="w-[30rem] bg-gray-500">
@@ -156,7 +220,7 @@ const Keyboard: React.FC<{
             <Button
               key={letter}
               onClick={() => onLetterPress(letter)}
-              disabled={guessedLetters.includes(letter) || gameOver}
+              disabled={guessedLetters.includes(letter) || gameOver || disabled}
               className="bg-gray-400 disabled:bg-gray-800 m-1 size-10 rounded items-center text-xl justify-center font-semibold flex "
             >
               {letter}
