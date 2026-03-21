@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
 import { useNavigate } from "react-router-dom";
+import { apiUrl } from "./lib/env";
 
 function App() {
   const [error, setError] = useState<string>("");
@@ -16,7 +17,7 @@ function App() {
       return;
     }
     const normalizedCode = roomCode.trim().toUpperCase();
-    const res = await fetch("/api/addplayer", {
+    const res = await fetch(apiUrl("/api/addplayer"), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -46,7 +47,7 @@ function App() {
       setError("Choose a display name before creating a room.");
       return;
     }
-    const res = await fetch("/api/createroom", {
+    const res = await fetch(apiUrl("/api/createroom"), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

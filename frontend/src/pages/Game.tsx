@@ -4,6 +4,7 @@ import type { RoomDetail, GameState } from "@shared/types";
 import { Button } from "@/components/ui/button";
 import { socket } from "../lib/socket";
 import { Input } from "@/components/ui/input";
+import { apiUrl } from "@/lib/env";
 
 const Game = () => {
   const { id } = useParams();
@@ -14,7 +15,6 @@ const Game = () => {
   const [error, setError] = useState("");
   const [winStatus, setWinStatus] = useState("");
   const navigate = useNavigate();
-  const backendURL = import.meta.env.VITE_BACKEND_URL || "";
 
   const roundReady = (gameState?.wordLength ?? 0) > 0;
   const remainingLives = useMemo(
@@ -24,7 +24,7 @@ const Game = () => {
 
   useEffect(() => {
     async function getRoom() {
-      const res = await fetch(`${backendURL}/api/getroom/${id}`);
+      const res = await fetch(apiUrl(`/api/getroom/${id}`));
       if (!res.ok) {
         setError("An error occurred. Refresh to try again.");
         return;
@@ -38,7 +38,7 @@ const Game = () => {
       setRoom(data.room);
     }
     async function getGameState() {
-      const res = await fetch(`${backendURL}/api/getgamestate/${id}`);
+      const res = await fetch(apiUrl(`/api/getgamestate/${id}`));
       if (!res.ok) {
         setError("Unable to fetch current round state.");
         return;

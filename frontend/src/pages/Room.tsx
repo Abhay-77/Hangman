@@ -3,6 +3,7 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import type { RoomDetail } from "@shared/types";
 import { Button } from "@/components/ui/button";
 import { socket } from "../lib/socket";
+import { apiUrl } from "@/lib/env";
 
 const Room = () => {
   const { id } = useParams();
@@ -11,8 +12,6 @@ const Room = () => {
   const [room, setRoom] = useState<RoomDetail>();
   const [error, setError] = useState("");
   const navigate = useNavigate();
-
-  const backendURL = import.meta.env.VITE_BACKEND_URL || "";
 
   const isHost = useMemo(() => room?.host === username, [room?.host, username]);
   const players = room?.players ?? [];
@@ -48,7 +47,7 @@ const Room = () => {
 
   useEffect(() => {
     async function getRoom() {
-      const res = await fetch(`${backendURL}/api/getroom/${id}`);
+      const res = await fetch(apiUrl(`/api/getroom/${id}`));
       if (!res.ok) {
         setError("Unable to load lobby. Refresh to try again.");
         return;
@@ -79,7 +78,7 @@ const Room = () => {
   }
 
   async function handleLeaveRoom() {
-    const res = await fetch(`${backendURL}/api/leaveroom`, {
+    const res = await fetch(apiUrl("/api/leaveroom"), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
