@@ -14,9 +14,10 @@ const maxGuesses = 6;
 app.use(express.json());
 
 type RoomStatus = "waiting" | "live";
+type Player = { username: string; userId: string };
 export type RoomDetail = {
   roomId: string;
-  players: string[];
+  players: Player[];
   word: string | null;
   status: RoomStatus;
   host: string;
@@ -41,7 +42,7 @@ app.post("/api/createroom", async (req: Request, res: Response) => {
     const id = nanoid(6).toUpperCase();
     rooms.push({
       roomId: id,
-      players: [body.username],
+      players: [{ username: body.username, userId: nanoid(8) }],
       word: "",
       status: "waiting",
       host: body.username,
@@ -78,11 +79,11 @@ app.post("/api/addplayer", (req, res) => {
       res.json({ success: 0, message: "Such a room does not exist" });
       return;
     }
-    if (room.players.includes(username)) {
+    if (room.players.some((player) => player.username === username)) {
       res.json({ success: 0, message: "Name already exists in room." });
       return;
     }
-    room.players.push(username);
+    room.players.push({ username, userId: nanoid(8) });
     io.to(gameId).emit("room-change", room);
     res.json({ success: 1, message: "Player added to room" });
   } catch (error) {
@@ -116,7 +117,9 @@ io.on("connection", (socket) => {
     }
 
     room.gameOver = room.wrongGuesses >= maxGuesses;
-    const gameWon = room.word.split("").every((ch) => room.guessedLetters.includes(ch));
+    const gameWon = room.word
+      .split("")
+      .every((ch) => room.guessedLetters.includes(ch));
 
     if (gameWon) {
       room.gameOver = true;
@@ -163,12 +166,12 @@ io.on("connection", (socket) => {
       wrongGuesses: 0,
       wordLength: room.word.length,
       gameOver: false,
-      maskedWord: masked(room.word, [])
+      maskedWord: masked(room.word, []),
     };
 
     room.word_chooser = socket.id;
 
-    io.to(roomId).emit("word-set",room,gameState);
+    io.to(roomId).emit("word-set", room, gameState);
   });
 });
 
@@ -194,8 +197,15 @@ app.post("/api/leaveroom", (req, res) => {
   try {
     const { username, id } = req.body;
     const room = rooms.find((r) => r.roomId === id);
-    if (room.players.includes(username)) {
-      room.players.splice(room.players.indexOf(username), 1);
+    if (!room) {
+      res.json({ success: 0, message: "Room not found" });
+      return;
+    }
+    const playerIndex = room.players.findIndex(
+      (player) => player.username === username,
+    );
+    if (playerIndex !== -1) {
+      room.players.splice(playerIndex, 1);
     }
     io.to(id).emit("room-change", room);
     res.json({ success: 1, message: "Player removed" });
@@ -209,7 +219,8 @@ function masked(word: string, guessedLetters: string[]): string {
   if (!word) {
     return "";
   }
-  const masked_word = word.split("")
+  const masked_word = word
+    .split("")
     .map((ch) => (guessedLetters.includes(ch) ? ch : "_"))
     .join(" ");
   return masked_word;
