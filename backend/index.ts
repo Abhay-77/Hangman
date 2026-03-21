@@ -3,14 +3,23 @@ import type { Request, Response } from "express";
 import { nanoid } from "nanoid";
 import { createServer } from "node:http";
 import { Server } from "socket.io";
+import cors from "cors";
+import dotenv from "dotenv";
 
 const app = express();
 const server = createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
 const PORT = process.env.PORT || 3000;
+dotenv.config();
 
 const maxGuesses = 6;
 
+app.use(
+  cors({
+    origin: process.env.URL,
+    methods: ["GET", "POST", "PUT", "DELETE"],
+  }),
+);
 app.use(express.json());
 
 type RoomStatus = "waiting" | "live";
