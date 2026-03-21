@@ -5,6 +5,7 @@ import { createServer } from "node:http";
 import { Server } from "socket.io";
 import cors from "cors";
 import dotenv from "dotenv";
+import type { GameState, RoomDetail } from "../shared/types";
 
 const app = express();
 const server = createServer(app);
@@ -21,27 +22,6 @@ app.use(
   }),
 );
 app.use(express.json());
-
-type RoomStatus = "waiting" | "live";
-type Player = { username: string; userId: string };
-export type RoomDetail = {
-  roomId: string;
-  players: Player[];
-  word: string | null;
-  status: RoomStatus;
-  host: string;
-  guessedLetters: string[];
-  wrongGuesses: number;
-  gameOver: boolean;
-  word_chooser?: string;
-};
-export type GameState = {
-  guessedLetters: string[];
-  wrongGuesses: number;
-  wordLength: number;
-  gameOver: boolean;
-  maskedWord: string;
-};
 
 const rooms: RoomDetail[] = [];
 

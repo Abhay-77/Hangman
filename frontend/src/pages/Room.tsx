@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import type { RoomDetail } from "../../../backend/index";
+import type { RoomDetail } from "@shared/types";
 import { Button } from "@/components/ui/button";
 import { socket } from "../lib/socket";
 
@@ -11,7 +11,7 @@ const Room = () => {
   const [room, setRoom] = useState<RoomDetail>();
   const [error, setError] = useState("");
   const navigate = useNavigate();
-  
+
   const backendURL = import.meta.env.VITE_BACKEND_URL || "";
 
   const isHost = useMemo(() => room?.host === username, [room?.host, username]);

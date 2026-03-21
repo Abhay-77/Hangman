@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import type { RoomDetail, GameState } from "../../../backend/index";
+import type { RoomDetail, GameState } from "@shared/types";
 import { Button } from "@/components/ui/button";
 import { socket } from "../lib/socket";
 import { Input } from "@/components/ui/input";
