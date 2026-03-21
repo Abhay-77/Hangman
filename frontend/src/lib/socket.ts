@@ -3,5 +3,5 @@ import { socketURL } from "./env";
 
 export const socket = io(socketURL ?? "/", {
   autoConnect: false,
-  withCredentials: true,
+  withCredentials: false,
 });
