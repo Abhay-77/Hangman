@@ -91,8 +91,19 @@ io.on("connection", (socket) => {
     // socket.leave(roomId)
     console.log("Someone left the room");
   });
-  socket.on("start-game", (roomId) => {
-    io.to(roomId).emit("start-game");
+  socket.on("start-game", (roomId: string) => {
+    const room = rooms.find((r) => r.roomId === roomId);
+    if (!room) return;
+
+    if (room.status !== "live" || room.gameOver) {
+      room.word = null;
+      room.gameOver = false;
+      room.status = "waiting";
+      room.guessedLetters = [];
+      room.wrongGuesses = 0;
+      room.word_chooser = room.players[Math.floor(Math.random() * room.players.length)].username;
+      io.to(roomId).emit("new-game", room);
+    }
   });
   socket.on("letterpress-handle", (letter, roomId) => {
     const room = rooms.find((r) => r.roomId == roomId);
@@ -130,17 +141,6 @@ io.on("connection", (socket) => {
     io.to(roomId).emit("gamestate-update", gameState);
   });
 
-  socket.on("nextgame-handle", (roomId: string) => {
-    const room = rooms.find((r) => r.roomId == roomId);
-    if (!room) return;
-    room.word = null;
-    room.gameOver = false;
-    room.status = "waiting";
-    room.guessedLetters = [];
-    room.wrongGuesses = 0;
-    io.to(roomId).emit("new-game", room);
-  });
-
   socket.on("wordsubmit-handle", (word: string, roomId: string) => {
     const room = rooms.find((r) => r.roomId == roomId);
     if (!room) return;
@@ -157,8 +157,6 @@ io.on("connection", (socket) => {
       gameOver: false,
       maskedWord: masked(room.word, []),
     };
-
-    room.word_chooser = socket.id;
 
     io.to(roomId).emit("word-set", room, gameState);
   });

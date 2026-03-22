@@ -141,7 +141,7 @@ function App() {
             </div>
           </form>
 
-          <aside className="rounded-3xl border border-white/10 bg-gradient-to-b from-white/10 to-white/5 p-6 backdrop-blur">
+          <aside className="hidden lg:block rounded-3xl border border-white/10 bg-gradient-to-b from-white/10 to-white/5 p-6 backdrop-blur">
             <div className="space-y-6">
               <div>
                 <p className="text-xs uppercase tracking-[0.3rem] text-cyan-200/80">
@@ -160,7 +160,8 @@ function App() {
                     Generate a code & share
                   </p>
                   <p className="text-slate-300">
-                    You set the word and control the pacing of each round.
+                    You’re just the organizer. Word picking is random each
+                    round, so expect to guess like everyone else.
                   </p>
                 </div>
                 <div className="rounded-2xl border border-white/10 bg-slate-950/50 p-4">
@@ -171,8 +172,8 @@ function App() {
                     Enter the code & guess
                   </p>
                   <p className="text-slate-300">
-                    Coordinate letters, watch mistakes, and try to outsmart the
-                    host.
+                    Hop in with the lobby code. One player is randomly chosen to
+                    set the word; everyone else collaborates to solve it.
                   </p>
                 </div>
               </div>

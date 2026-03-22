@@ -33,14 +33,15 @@ const Room = () => {
 
     socket.on("room-change", handleRoomChange);
 
-    const handleStartGameEmit = () => {
+    const handleStartGameEmit = (updatedRoom: RoomDetail) => {
+      setRoom(updatedRoom);
       navigate(`/game/${id}?username=${encodeURIComponent(username)}`);
     };
 
-    socket.on("start-game", handleStartGameEmit);
+    socket.on("new-game", handleStartGameEmit);
 
     return () => {
-      socket.off("start-game", handleStartGameEmit);
+      socket.off("new-game", handleStartGameEmit);
       socket.off("room-change", handleRoomChange);
     };
   }, [id, navigate, username]);
@@ -130,7 +131,7 @@ const Room = () => {
                 {statusLabel}
               </span>
             </div>
-            <div className="mt-8 grid gap-4 md:grid-cols-2">
+            <div className="hidden md:grid mt-8 gap-4 md:grid-cols-2">
               <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-5">
                 <p className="text-xs uppercase tracking-[0.3rem] text-amber-200/80">
                   Host
@@ -139,7 +140,8 @@ const Room = () => {
                   {room?.host ?? "—"}
                 </p>
                 <p className="text-sm text-slate-400">
-                  Controls the word and round pacing.
+                  First player to open the lobby. Can start rounds but still
+                  plays like everyone else.
                 </p>
               </div>
               <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-5">
@@ -153,7 +155,24 @@ const Room = () => {
                   Need at least two players to make it fun.
                 </p>
               </div>
+              <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-5">
+                <p className="text-xs uppercase tracking-[0.3rem] text-cyan-200/80">
+                  Word chooser
+                </p>
+                <p className="text-2xl font-semibold text-white">
+                  Random every round
+                </p>
+                <p className="text-sm text-slate-400">
+                  A player is picked automatically each round to set the secret
+                  word — it might be you, the host, or anyone else.
+                </p>
+              </div>
             </div>
+
+            <p className="hidden lg:block mt-6 text-xs uppercase tracking-[0.3rem] text-slate-400">
+              Word chooser rotates randomly every round — the host is just
+              another player.
+            </p>
 
             <div className="mt-10 flex flex-wrap gap-4">
               <Button
@@ -219,11 +238,6 @@ const Room = () => {
                   Waiting for adventurers to join this lobby.
                 </div>
               )}
-            </div>
-
-            <div className="mt-8 rounded-2xl border border-cyan-400/30 bg-cyan-400/10 p-4 text-sm text-cyan-100">
-              Tip: hosts can swap the secret word between rounds for surprise
-              rematches.
             </div>
           </aside>
         </section>
